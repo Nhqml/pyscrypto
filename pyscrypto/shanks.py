@@ -10,7 +10,7 @@ from termcolor import cprint
 @click.argument("target", type=int)
 @click.argument("mod", type=int)
 def shanks(generator: int, target: int, mod: int):
-    """Shanks algorithm for discrete log calculation
+    """Shanks algorithm for discrete log calculation.
 
     Calculates the discrete logarithm l in base GENERATOR of TARGET modulo MOD using the Shanks algorithm.
 
@@ -34,8 +34,7 @@ def shanks(generator: int, target: int, mod: int):
             break
 
     cprint(
-        f"m (taille optimale de tableau): ceil(sqrt(mod - 1)) = ceil(sqrt({mod - 1})) ="
-        f" {m}\n",
+        f"m (optimal table size): ceil(sqrt(mod - 1)) = ceil(sqrt({mod - 1})) = {m}\n",
         color="yellow",
     )
 
