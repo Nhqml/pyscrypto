@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "pyscrypto"
+version = "0.1.0"
+description = "Python scripts for cryptography (for dummies)"
+authors = ["Kenji Gaillac <kenji.gaillac@student-cs.fr>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+click = "^8.1.3"
+termcolor = "^2.1.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+pyscrypto = "pyscrypto.__main__:main"
