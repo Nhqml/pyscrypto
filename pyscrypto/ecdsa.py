@@ -1,5 +1,6 @@
 import itertools
 import math
+from collections import namedtuple
 from contextlib import redirect_stdout
 from os import devnull
 
@@ -49,10 +50,20 @@ class Point(click.ParamType):
             self.fail(f"{value!r} is not a valid point", param, ctx)
 
 
-POINT = Point()
-
-
 INF_POINT = Point(math.inf, math.inf)
+
+
+class PrivKey(namedtuple("PrivKey", ["l"])):
+    def __str__(self):
+        return f"(l = {self.l})"
+
+
+class PubKey(namedtuple("PubKey", ["p", "a", "b", "P", "n", "Q"])):
+    def __str__(self):
+        return (
+            f"(p = {self.p}, E = [y² = x³ + {self.a}x + {self.b}], P = {self.P}, n ="
+            f" {self.n}, Q = {self.Q})"
+        )
 
 
 def generate_points(generator: Point, a: int, mod: int) -> list[Point]:
@@ -113,6 +124,27 @@ def generate_points(generator: Point, a: int, mod: int) -> list[Point]:
     return points
 
 
+def keygen(a: int, b: int, mod: int, p: Point, l: int):
+    cprint(
+        f"Generating Pub key for E = [y² = x³ + {a}x + {b}] in GFp (p = {mod}) | P ="
+        f" {p} and l = {l}\n",
+        color="yellow",
+    )
+    with open(devnull, "w") as f, redirect_stdout(f):
+        points = generate_points(p, a, mod)
+
+    n = len(points)
+    cprint(f"P = {p} generated {n} points\n", attrs=["dark"])
+
+    q = points[l - 1]
+    cprint(f"Since l = {l} we will use Q = {l}P = {q}\n", color="cyan")
+
+    pub, priv = PubKey(mod, a, b, p, n, q), PrivKey(l)
+    cprint(f"PublicKey: {pub}\nPrivateKey: {priv}", color="green", attrs=["bold"])
+
+    return pub, priv
+
+
 @click.group()
 def ecdsa():
     """ECDSA (elliptic curves) functions"""
@@ -120,7 +152,25 @@ def ecdsa():
 
 
 @ecdsa.command()
-@click.argument("generator", type=POINT)
+@click.argument("a", type=int)
+@click.argument("b", type=int)
+@click.argument("mod", type=int)
+@click.argument("p", type=Point())
+@click.argument("l", type=int)
+def gen_keys(a: int, b: int, mod: int, p: Point, l: int):
+    """Gen ECDSA keys.
+
+    \b
+    A comes directly from the elliptic curve equation (y² = x³ + ax + b)
+    MOD is the modulo (order p of the Gallois Field)
+    P is the generator point
+    L is the private key
+    """
+    keygen(a, b, mod, p, l)
+
+
+@ecdsa.command()
+@click.argument("generator", type=Point())
 @click.argument("a", type=int)
 @click.argument("mod", type=int)
 def gen_points(generator: Point, a: int, mod: int):
@@ -128,22 +178,28 @@ def gen_points(generator: Point, a: int, mod: int):
 
     \b
     A comes directly from the elliptic curve equation (y² = x³ + ax + b)
-    MOD is the modulo
+    MOD is the modulo (order p of the Gallois Field)
     """
     generate_points(generator, a, mod)
 
 
 @ecdsa.command()
-@click.argument("point", type=POINT)
+@click.argument("point", type=Point())
 @click.argument("a", type=int)
 @click.argument("b", type=int)
 @click.argument("mod", type=int)
-def check_generator(point: Point, a: int, b: int, mod: int):
+@click.option(
+    "-v",
+    "--verbose",
+    help="If verbose, display points generation",
+    is_flag=True,
+)
+def check_generator(point: Point, a: int, b: int, mod: int, verbose: bool):
     """Checks that the given point is a generator.
 
     \b
     A and B come directly from the elliptic curve equation (y² = x³ + ax + b)
-    MOD is the modulo
+    MOD is the modulo (order p of the Gallois Field)
     """
 
     curve_points = [
@@ -152,10 +208,127 @@ def check_generator(point: Point, a: int, b: int, mod: int):
         if (p.y**2) % mod == (p.x**3 + a * p.x + b) % mod
     ]
 
-    with open(devnull, "w") as f, redirect_stdout(f):
+    if verbose:
         generated_points = generate_points(point, a, mod)
+        print()
+    else:
+        with open(devnull, "w") as f, redirect_stdout(f):
+            generated_points = generate_points(point, a, mod)
 
     if set(curve_points) <= set(generated_points):
         cprint(f"{point} is a generator!", color="green", attrs=["bold"])
     else:
         cprint(f"{point} is a not generator!", color="red", attrs=["bold"])
+
+
+@ecdsa.command()
+@click.argument("h", type=int)
+@click.argument("p", type=Point())
+@click.argument("a", type=int)
+@click.argument("b", type=int)
+@click.argument("mod", type=int)
+@click.argument("l", type=int)
+@click.argument("k", type=int)
+def sign(h: int, p: Point(), a: int, b: int, mod: int, l: int, k: int):
+    """Sign using ECDSA.
+
+    \b
+    H is the hash to sign
+    P is the generator point
+    A comes directly from the elliptic curve equation (y² = x³ + ax + b)
+    MOD is the modulo (order p of the Gallois Field)
+    L is the private key
+    K is the random value
+    """
+
+    points = generate_points(p, a, mod)
+    n = len(points)
+    kp = points[k - 1]
+
+    cprint(f"\nkP = {kp}\n", color="green")
+
+    sig = (pow(k, -1, n) * (h + kp.x * l)) % n
+    cprint(
+        f"sig = k^-1 * (H + x_kP * l) % n = {k}^-1 * ({h} + {kp.x} * {l}) % {n}",
+        attrs=["dark"],
+    )
+    cprint(f"sig = (M, x_kP = {kp.x}, sig = {sig})", color="green", attrs=["bold"])
+
+    print("\nAdditional info:")
+    with open(devnull, "w") as f, redirect_stdout(f):
+        pub, priv = keygen(a, b, mod, p, l)
+
+    cprint(f"PubKey: {pub}", color="cyan")
+    cprint(f"PrivKey: {priv}", color="cyan")
+
+
+@ecdsa.command()
+@click.argument("h", type=int)
+@click.argument("sig", type=int)
+@click.argument("p", type=Point())
+@click.argument("a", type=int)
+@click.argument("mod", type=int)
+@click.argument("x_kP", type=int)
+@click.argument("Q", type=Point())
+def verify(h: int, sig: int, x_kp: int, p: Point, a: int, mod: int, q: Point):
+    """Verify using ECDSA.
+
+    \b
+    H is the hash to verify
+    SIG is the signature
+    X_KP is the abscisse of kP point
+    P is the generator point
+    A comes directly from the elliptic curve equation (y² = x³ + ax + b)
+    MOD is the modulo (order p of the Gallois Field)
+    Q is the point from the Public Key
+    """
+
+    with open(devnull, "w") as f, redirect_stdout(f):
+        points = generate_points(p, a, mod)
+    n = len(points)
+
+    try:
+        assert 1 <= x_kp <= n - 1
+        cprint(f"1 <= x_kp, sig <= n - 1", attrs=["dark"])
+        cprint(f"1 <= {x_kp} <= {n} - 1", color="cyan")
+
+        assert 1 <= sig <= n - 1
+        cprint(f"1 <= {sig} <= {n} - 1", color="cyan")
+    except AssertionError:
+        cprint(
+            f"La condition 1 <= x_kp, sig <= n - 1 n'est pas vérifiée !",
+            color="red",
+            attrs=["bold"],
+        )
+        return
+
+    sig_inv = pow(sig, -1, mod=n)
+
+    with open(devnull, "w") as f, redirect_stdout(f):
+        points2 = generate_points(q, a, mod)
+
+    hs = (h * sig_inv) % n
+    xs = (x_kp * sig_inv) % n
+
+    cprint(f"\nV = (h * sig^-1)P + (xk_p * sig^-1)Q", attrs=["dark"])
+    cprint(f"V = {hs}P + {xs}Q", attrs=["dark"])
+    cprint(f"V = {points[hs - 1]} + {points2[xs - 1]}", attrs=["dark"])
+
+    xsp_i = points.index(points2[xs - 1]) + 1
+
+    cprint(f"On triche pour ne pas avoir à calculer !", end="", color="red")
+    cprint(f" {points2[xs - 1]} = {xsp_i}P", attrs=["dark"])
+
+    cprint(
+        f"V = {hs}P + {xsp_i}P = {hs + xsp_i}P = {(hs + xsp_i) % n}P (mod {n})",
+        attrs=["dark"],
+    )
+
+    v = points[(hs + xsp_i) % n - 1]
+
+    cprint(f"V = {v}", color="cyan")
+
+    if v.x == x_kp:
+        cprint(f"Signature is valid! x_v == x_kp", color="green", attrs=["bold"])
+    else:
+        cprint(f"Signature is invalid! x_v != x_kp", color="red", attrs=["bold"])

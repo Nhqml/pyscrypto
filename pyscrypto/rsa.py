@@ -1,7 +1,6 @@
 import itertools
 import math
 from collections import namedtuple
-from contextlib import redirect_stdout
 from os import devnull
 
 import click
