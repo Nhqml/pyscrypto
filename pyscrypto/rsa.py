@@ -41,6 +41,7 @@ def keygen(p: int, q: int, e: int = 3):
             color="red",
             attrs=["bold"],
         )
+        return
 
     pub, priv = PubKey(n, e), PrivKey(p, q, d)
     cprint(f"PublicKey: {pub} | PrivateKey: {priv}", color="green", attrs=["bold"])
