@@ -1,6 +1,6 @@
 import click
 
-from pyscrypto import ecdsa, rsa, shanks
+from pyscrypto import ecdsa, number, rsa, shanks
 
 
 @click.group()
@@ -11,6 +11,7 @@ def cli():
 cli.add_command(ecdsa.ecdsa)
 cli.add_command(shanks.shanks)
 cli.add_command(rsa.rsa)
+cli.add_command(number.number)
 
 
 def main():
