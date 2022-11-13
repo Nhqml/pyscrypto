@@ -1,7 +1,7 @@
 import functools
 import operator
 from collections import defaultdict
-from math import floor, sqrt
+from math import ceil, floor, sqrt
 
 import click
 from termcolor import cprint
@@ -156,3 +156,26 @@ def phi(n: int):
             color="green",
             attrs=["bold"],
         )
+
+
+@number.command()
+@click.argument("n", type=int)
+def fermat_factorize(n: int):
+    """Factorize number using Fermat's algorithm."""
+
+    a = ceil(sqrt(n))
+    t2 = a**2 - n
+
+    cprint(f"a = ceil(sqrt({n})) = {a}", color="cyan")
+    cprint(f"t^2 = a^2 - n = {a}^2 - {n} = {t2}", color="cyan", end="\n")
+
+    while (sq := sqrt(t2)) != int(sq):
+        a += 1
+        t2 = a**2 - n
+
+        cprint(f"\na = {a}", color="cyan")
+        cprint(f"t^2 = {t2}", color="cyan", end="")
+
+    cprint(f" => t = {int(sq)}\n", color="cyan")
+    cprint(f"f1 = a - t = {a} - {int(sq)} = {int(a - sq)}", color="cyan")
+    cprint(f"{n} = {int(a - sq)} * {int(n / a - sq)}", color="green", attrs=["bold"])
