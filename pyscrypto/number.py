@@ -178,4 +178,4 @@ def fermat_factorize(n: int):
 
     cprint(f" => t = {int(sq)}\n", color="cyan")
     cprint(f"f1 = a - t = {a} - {int(sq)} = {int(a - sq)}", color="cyan")
-    cprint(f"{n} = {int(a - sq)} * {int(n / a - sq)}", color="green", attrs=["bold"])
+    cprint(f"{n} = {int(a - sq)} * {int(n / (a - sq))}", color="green", attrs=["bold"])
