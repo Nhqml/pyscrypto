@@ -169,12 +169,15 @@ def fermat_factorize(n: int):
     cprint(f"a = ceil(sqrt({n})) = {a}", color="cyan")
     cprint(f"t^2 = a^2 - n = {a}^2 - {n} = {t2}", color="cyan", end="\n")
 
-    while (sq := sqrt(t2)) != int(sq):
+    sq = sqrt(t2)
+    while sq != int(sq):
         a += 1
         t2 = a**2 - n
 
         cprint(f"\na = {a}", color="cyan")
         cprint(f"t^2 = {t2}", color="cyan", end="")
+
+        sq = sqrt(t2)
 
     cprint(f" => t = {int(sq)}\n", color="cyan")
     cprint(f"f1 = a - t = {a} - {int(sq)} = {int(a - sq)}", color="cyan")

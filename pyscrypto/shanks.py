@@ -29,7 +29,8 @@ def shanks(generator: int, target: int, mod: int):
         res = target * (pow(generator, -m, mod) ** i) % mod
         i_tab.append(res)
 
-        if j := j_set.get(res):
+        j = j_set.get(res)
+        if j:
             l = m * i + j
             break
 

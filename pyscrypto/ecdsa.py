@@ -66,7 +66,7 @@ class PubKey(namedtuple("PubKey", ["p", "a", "b", "P", "n", "Q"])):
         )
 
 
-def generate_points(generator: Point, a: int, mod: int) -> list[Point]:
+def generate_points(generator: Point, a: int, mod: int):
     points: list[Point] = [generator]
 
     cprint(
