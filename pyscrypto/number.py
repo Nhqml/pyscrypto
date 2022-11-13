@@ -1,4 +1,7 @@
-import math
+import functools
+import operator
+from collections import defaultdict
+from math import floor, sqrt
 
 import click
 from termcolor import cprint
@@ -24,11 +27,27 @@ def prime(n: int):
     if n <= 1:
         return (False, None)
 
-    for i in range(2, math.floor(math.sqrt(n)) + 1):
+    for i in range(2, floor(sqrt(n)) + 1):
         if n % i == 0:
             return (False, i)
 
     return (True, 0)
+
+
+def prime_factors(n: int):
+    factors = defaultdict(int)
+
+    i = 2
+    limit = n
+
+    while i <= limit:
+        if prime(i)[0] and n % i == 0:
+            factors[i] += 1
+            n /= i
+        else:
+            i += 1
+
+    return factors
 
 
 @click.group()
@@ -84,5 +103,56 @@ def pgcd(a: int, b: int):
             f"PGCD = {pgcd} (this is not the correct result, there seems to be a"
             " problem!)",
             color="red",
+            attrs=["bold"],
+        )
+
+
+@number.command()
+@click.argument("n", type=int)
+def factorize(n: int):
+    """Prime factors factorization."""
+    if n <= 1:
+        cprint(f"Cannot factorize", color="red", attrs=["bold"])
+    else:
+        factors = prime_factors(n)
+
+        verif = functools.reduce(operator.mul, ([p**k for p, k in factors.items()]))
+
+        if verif == n:
+            cprint(
+                f"{n} = {' * '.join([f'{p}^{k}' for p, k in factors.items()])}",
+                color="green",
+                attrs=["bold"],
+            )
+        else:
+            cprint(
+                "Get the following factorization but the result seems to be"
+                " incorrect!\n"
+                f"{n} = {' * '.join([f'{p}^{k}' for p, k in factors.items()])}",
+                color="red",
+                attrs=["bold"],
+            )
+
+
+@number.command()
+@click.argument("n", type=int)
+def phi(n: int):
+    """Calculates phi(n) (Euler's totient)."""
+    if prime(n)[0]:
+        cprint(
+            f"{n} is prime so phi({n}) = {n} - 1 = {n - 1}",
+            color="green",
+            attrs=["bold"],
+        )
+    else:
+        factors = prime_factors(n)
+
+        phi = functools.reduce(
+            operator.mul, [(p - 1) * p ** (k - 1) for p, k in factors.items()]
+        )
+
+        cprint(
+            f"phi({n}) = {phi}",
+            color="green",
             attrs=["bold"],
         )
